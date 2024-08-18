@@ -7,29 +7,31 @@ enum APIErrors: Error{
     case invalidDogUrl
 }
 
-final internal class NetworkManager{
+protocol NetworkSessionProtocol{
+    func data(from url: URL) async throws -> (Data,URLResponse)
+}
+protocol NetworkManagerProtocol{
+    func requestDogImage(number:Int) async throws -> [String]?
+}
+
+extension URLSession : NetworkSessionProtocol{
+}
+
+final class NetworkManager: NetworkManagerProtocol{
     static let shared = NetworkManager()
-    func requestDogImage(number:Int = 1) async throws -> [String]?{
-        guard let url = URL(string: "https://dog.ceo/api/breeds/image/random/\(number)")
-        else{ throw APIErrors.invalidBaseUrl }
-        
-        let (data,urlResponse) = try await URLSession.shared.data(from: url)
-        guard let value = parseData(data, urlResponse) 
-        else{ throw APIErrors.parsingError }
-        
-        guard let arrayStrings = value.message else{ throw APIErrors.invalidDogUrl }
-        return arrayStrings
+    private let session: NetworkSessionProtocol
+    private let parser : DataParserProtocol
+    init(session:NetworkSessionProtocol = URLSession.shared,  parser: DataParserProtocol = DefaultDataParser()) {
+        self.parser = parser
+        self.session = session
     }
     
-    private func parseData(_ data:Data,_ response: URLResponse) -> ResponseModel?{
-        guard let response = response as? HTTPURLResponse else{ return nil }
-        guard response.statusCode == 200  else{ return nil }
-        var value : ResponseModel?
-        do{
-            value = try JSONDecoder().decode(ResponseModel.self, from: data)
-        }catch{
-            print("error in decoding reponse model :\(error)")
-        }
-        return value
+    func requestDogImage(number:Int = 1) async throws -> [String]?{
+        let strBaseUrl = "https://dog.ceo/api/breeds/image/random/"
+        guard let url = URL(string: strBaseUrl + String(number))
+        else{ throw APIErrors.invalidBaseUrl }
+        
+        let (data,urlResponse) = try await session.data(from: url)
+        return try parser.parse(data, response: urlResponse)
     }
 }
