@@ -16,7 +16,7 @@ class DefaultDataParser : DataParserProtocol{
             return arrayStrings
         }catch{
             print("error in decoding reponse model :\(error)")
+            throw APIErrors.invalidDogUrl
         }
-        return nil
     }
 }

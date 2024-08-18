@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-public class FetchDogImages{
+public class DogPicsLibrary{
     
     private let dogImageService: DogImageServiceProtocol
     private let imageDownloader: ImageDownloaderProtocol
